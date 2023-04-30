@@ -1,4 +1,4 @@
-const { Client, Intents, MessageEmbed, MessageActionRow, MessageButton, Collection} = require('discord.js');
+const { Client, Intents, MessageEmbed, MessageActionRow, MessageButton, Collection, Message} = require('discord.js');
 const fs = require('fs');
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MEMBERS, Intents.FLAGS.GUILD_BANS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.DIRECT_MESSAGES]});
 const path = require('node:path');
@@ -15,6 +15,16 @@ for (const file of commandFiles){
 }
 
 var Tt = new Array();
+
+// comando voo
+var vooHora = new Array();
+var cpilot = String;
+var atir1 = String;
+var atir2 = String;
+var fimVoo = String;
+var aVoo = String;
+
+//relatorio
 var relatorio = require('./relatorio.json');
 var autor;
 var nome;
@@ -24,7 +34,10 @@ const wb = new xl.Workbook();
 const ws = wb.addWorksheet('Pontos da semana');
 
 client.on('ready', () => {
-  console.log(`Logged in as ${client.user.tag}!`);
+  console.log(`${client.user.tag} operante!`);
+  client.user.setActivity('Cuidando da papelada.', { type:'PLAYING'});
+  client.user.setStatus('dnd');
+  
 });
 
 const titulos = [
@@ -40,21 +53,42 @@ client.on('interactionCreate', async interaction => {
   if (interaction.isButton()){
     if(interaction.customId === `${interaction.member.id}-fechar-ponto` ){
       
-      nome = interaction.member.user.username;
+      nome = interaction.member.nickname;
       var hora = new Date();
       const Embed = new MessageEmbed()
-      .setDescription("Ponto fechado em " + hora.getDate() + '/' + hora.getMonth()+1 + ' as ' + hora.getHours() + ':' + hora.getMinutes() + ":" + hora.getSeconds())
+      .setDescription("Ponto fechado em " + hora.getDate() + '/' + (hora.getMonth()+1) + ' as ' + hora.getHours() + ':' + hora.getMinutes() + ":" + hora.getSeconds())
       .setColor("RED")
       .setTitle(nome)
       .setThumbnail(interaction.member.user.avatarURL());
 
       inserirRelatorio(nome, Tt[interaction.member.id].toString());
-      console.log(Tt[interaction.member.id]);
       interaction.reply({embeds: [Embed]});
 
+    }else if(interaction.customId === `${interaction.member.id}-encerrar-voo`){
+      var vooFim = new Date();
+      fimVoo = vooFim.getHours() + ":" + vooFim.getMinutes(); 
+      var vooEmbed = new MessageEmbed()
+        .setTitle('Voo iniciado')
+        .setDescription('Informações do voo:')
+        .setColor("DARK_BLUE")
+        .setThumbnail('https://media2.giphy.com/media/9DatA1LmRANoRTONwS/giphy.gif?cid=790b7611baca7fcbaf5131e1277767148b3a98620addb0b6&rid=giphy.gif&ct=g')
+        .addFields(
+          {name: 'QRA do piloto:', value: `${interaction.member}`, inline:true},
+          {name: 'QRA do co-piloto:', value: `${cpilot}`, inline: true},
+          {name: '\u200B', value:'\u200B'}
+          )
+          .addFields(
+            {name: 'QRA do Atirador 1:', value: `${atir1}`, inline: true},
+            {name: 'QRA do Atirador 2:', value: `${atir2}`, inline: true},
+            {name: '\u200B', value:'\u200B'}
+          )
+          .addField('Hora do inicio do voo:',`${vooHora[interaction.member.id]}`, true)
+          .addField('Hora de finalização do voo:',`${fimVoo}`, true);
+      interaction.reply({embeds: [vooEmbed]});
+      
     }else {
 
-      interaction.reply("Você não é o autor deste ponto!");
+      interaction.reply("Você não é o autor deste comando!");
 
     }
   }
@@ -66,13 +100,14 @@ client.on('interactionCreate', async interaction => {
 
 	try {
     if(interaction.commandName == 'ponto'){
+      interaction.channelId = 
       autor = interaction.member.id;
-      nome = interaction.member.user.username;
+      nome = interaction.member.nickname;
       var before = new Date();
       usuario[autor] = new Array(autor);
-      Tt[autor] = new Array(before.getDate() + "/" + before.getMonth() +  " " + before.getHours() + ":" + before.getMinutes() + ":" + before.getSeconds());
+      Tt[autor] = new Array(before.getDate() + "/" + (before.getMonth()+1) +  " " + before.getHours() + ":" + before.getMinutes() + ":" + before.getSeconds());
       const Embed = new MessageEmbed()
-      .setDescription("Ponto aberto em "+ before.getDate() + '/' + before.getMonth() + ' as ' + before.getHours() + ':' + before.getMinutes() + ":" + before.getSeconds())
+      .setDescription("Ponto aberto em "+ before.getDate() + '/' + (before.getMonth()+1) + ' as ' + before.getHours() + ':' + before.getMinutes() + ":" + before.getSeconds())
       .setColor("GREEN")
       .setTitle(nome)
       .setThumbnail(interaction.member.user.avatarURL());
@@ -87,9 +122,72 @@ client.on('interactionCreate', async interaction => {
           );
       interaction.reply({embeds: [Embed], components: [Row]});
 
-    }else if(interaction.commandName = 'relatorio'){
+    }else if(interaction.commandName == 'relatorio'){
       inserirEntrada();
       
+      await command.execute(interaction);
+    }else if(interaction.commandName == 'voo'){
+
+      if(interaction.options.getUser('copilto') !== null){
+        cpilot = interaction.options.getUser('copilto');
+      }else{
+        cpilot = "Sem";
+      }
+      if(interaction.options.getUser('atirador1') !== null){
+
+        if(interaction.options.getUser('atirador2') !== null){
+          atir1 = interaction.options.getUser('atirador1');
+          atir2 = interaction.options.getUser('atirador2');
+        }else{
+          atir1 = interaction.options.getUser('atirador1');
+          atir2 = 'Sem';
+        }
+      }else{
+        interaction.reply("Necessario atirador!");
+      }
+      var horaVoo = new Date();
+      vooHora[interaction.member.id] = horaVoo.getHours() + ":" + horaVoo.getMinutes(); 
+      fimVoo = "...";
+
+      var vooEmbed = new MessageEmbed()
+        .setTitle('Voo iniciado')
+        .setDescription('Informações do voo:')
+        .setColor("BLUE")
+        .setThumbnail('https://media2.giphy.com/media/9DatA1LmRANoRTONwS/giphy.gif?cid=790b7611baca7fcbaf5131e1277767148b3a98620addb0b6&rid=giphy.gif&ct=g')
+        .addFields(
+          {name: 'QRA do piloto:', value: `${interaction.member}`, inline:true},
+          {name: 'QRA do co-piloto:', value: `${cpilot}`, inline: true},
+          {name: '\u200B', value:'\u200B'}
+          )
+          .addFields(
+            {name: 'QRA do Atirador 1:', value: `${atir1}`, inline: true},
+            {name: 'QRA do Atirador 2:', value: `${atir2}`, inline: true},
+            {name: '\u200B', value:'\u200B'}
+          )
+          .addField('Hora do inicio do voo:',`${vooHora[interaction.member.id]}`, true)
+          .addField('Hora de finalização do voo:',`${fimVoo}`, true);
+    
+          
+          
+        var buttonVoo = new MessageActionRow();
+        buttonVoo.addComponents(
+          new MessageButton()
+          .setCustomId(`${interaction.member.id}-encerrar-voo`)
+          .setStyle("DANGER")
+          .setLabel("Encerrar")
+          );
+          interaction.reply({embeds:[vooEmbed], components: [buttonVoo]});
+
+    }else if(interaction.commandName == 'apreendidos'){
+      var apreendidos = String;
+      apreendidos = interaction.options.getString('apreendidos');
+      var apreendidos_sep = new Array(); 
+      apreendidos_sep = apreendidos.split(",");
+      var channel = client.channels.cache.get(interaction.channelId);
+
+      apreendidos_sep.forEach(function(item){
+        channel.send(`> ***- ${item}***`);
+      });
       await command.execute(interaction);
     }else{
       await command.execute(interaction);
@@ -105,7 +203,7 @@ client.on('interactionCreate', async interaction => {
 
 function inserirRelatorio(nome, entrada){
   var now =  new Date();
-  const saida = String(now.getDate() + "/" + now.getMonth() + " " + now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds());
+  const saida = String(now.getDate() + "/" + (now.getMonth()+1) + " " + now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds());
   const data = {
       "nome": String(nome),
       "entrada": entrada,
@@ -121,7 +219,7 @@ fs.writeFile("relatorio.json", JSON.stringify(relatorio), err => {
 
 function inserirEntrada(){
   var now =  new Date();
-  const saida = String(now.getDate()+ "/" + now.getMonth() + " " + now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds());
+  const saida = String(now.getDate()+ "/" + now.getMonth()+1 + " " + now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds());
   let headingColumnIndex = 1;
   titulos.forEach(heading =>{
     ws.cell(1, headingColumnIndex++).string(heading);
@@ -139,4 +237,4 @@ function inserirEntrada(){
 }
 
 
-client.login('NTg5NTc1Njk2OTcyNzc1NDM0.GBEEof.YL32zD0FvrxvZXyNNCq2Jsw9okpAw9EuWHS7PE');
+client.login('ODIyNDkwOTY1MjgwMjkyODY0.Gvhbos.1HGy5zzpUnX8pfaXdNvIRKMGmp7qNS2oLHgegs');
